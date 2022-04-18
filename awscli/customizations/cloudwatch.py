@@ -11,15 +11,19 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-from awscli.customizations.commands import BasicCommand
+from awscli.arguments import CustomArgument
+from awscli.customizations.utils import validate_mutually_exclusive_handler
 
-def register_cloudwatch_commands(cli):
-    cli.register('building-command-table.cloudwatch', add_cloudwatch_commands)
+def register_cloudwatch_commands(event_handler):
+    event_handler.register('building-command-table.cloudwatch', add_cloudwatch_commands)
+    event_handler.register('operation-args-parsed.cloudwatch.get-metric-statistics', validate_mutually_exclusive_handler(
+        ['start-time', 'end-time'], ['since', 'until']
+    ))
 
 def add_cloudwatch_commands(command_table, session, **kwargs):
     command_table['get-metric-statistics'] = GetMetricStatistics(session)
 
-class GetMetricStatistics(BasicCommand):
+class GetMetricStatistics(CustomArgument):
     NAME = 'get-metric-statistics'
     DESCRIPTION = (
         'Gets CloudWatch statistics for the specified metric.'
@@ -28,8 +32,10 @@ class GetMetricStatistics(BasicCommand):
         {'name': 'namespace', 'required': True, 'help_text': 'The namespace of the metric.'},
         {'name': 'metric-name', 'required': True, 'help_text': 'The name of the metric.'},
         {'name': 'dimensions', 'action': 'append', 'help_text': 'The dimensions to filter on.'},
-        {'name': 'start-time', 'required': True, 'help_text': 'The start time of the logs period.'},
-        {'name': 'end-time', 'required': True, 'help_text': 'The end time of the logs period.'},
+        {'name': 'start-time', 'required': False, 'help_text': 'The start time of the logs period.'},
+        {'name': 'end-time', 'required': False, 'help_text': 'The end time of the logs period.'},
+        {'name': 'since', 'required': False, 'help_text': 'The start time of the logs period with human readable format.'},
+        {'name': 'until', 'required': False, 'help_text': 'The end time of the logs period with human readable format.'},
         {'name': 'period', 'required': True, 'help_text': 'The period in seconds.'},
         {'name': 'statistics', 'required': True, 'help_text': 'The statistics to return.'},
         {'name': 'unit', 'required': True, 'help_text': 'The unit of the metric.'},
